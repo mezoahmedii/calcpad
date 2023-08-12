@@ -3,6 +3,8 @@ from simpleeval import SimpleEval, MAX_STRING_LENGTH, IterableTooLong
 from time import sleep
 from tkinter import ttk
 
+class AssignEx(Exception): pass
+
 class DecimalEval(SimpleEval):
   @staticmethod
   def _eval_constant(node):
@@ -13,6 +15,10 @@ class DecimalEval(SimpleEval):
       )
     return decimal.Decimal(str(node.n))
 
+  @staticmethod
+  def _eval_assign(node):
+    raise AssignEx()
+
 s = DecimalEval()
 
 s.functions = {"sqrt": math.sqrt, "cbrt": math.cbrt, "round": round,
@@ -20,7 +26,8 @@ s.functions = {"sqrt": math.sqrt, "cbrt": math.cbrt, "round": round,
               "fact": math.factorial, "log": math.log, "sin": math.sin,
               "cos": math.cos, "tan": math.tan}
 
-s.names = {"pi": math.pi, "e": math.e, "phi": (1 + 5 ** 0.5) / 2}
+def swap_words(s, x, y):
+    return y.join(part.replace(y, x) for part in s.split(x))
 
 def checkEdited(app):
   while not app.text.edit_modified():
@@ -43,7 +50,7 @@ class App:
   def __init__(self):
     self.root = tk.Tk()
     self.root.geometry("500x375+250+150")
-    self.root.title("Sticky Calculator 2")
+    self.root.title("Calcpad")
     self.root["bg"] = "#1e1e1e"
     self.root.minsize(250, 250)
 
@@ -68,6 +75,7 @@ class App:
     self.settingsb.grid(row=2, column=0, columnspan=3)
 
     self.lineEnds = {}
+    self.variables = {"pi": math.pi, "e": math.e, "phi": (1 + 5 ** 0.5) / 2}
 
     self.thread = threading.Thread(target=checkEdited, args=(self,), daemon=True)
     self.thread.start()
@@ -76,19 +84,38 @@ class App:
     self.root.mainloop()
 
   def checkLines(self, lines):
-    text = """"""
+    # initialize variables
+    text = ""
+    self.variables = {"pi": math.pi, "e": math.e, "phi": (1 + 5 ** 0.5) / 2}
+
     for i, line in enumerate(lines.splitlines()):
       lineend = math.inf
-      line = "^".join(part.replace("^", "**") for part in line.split("**"))
-      if "‎" in line:
-        line = line[:line.index("‎")-3]
+
+      # remove invisible character
+      if "‎" in line: line = line[:line.index("‎")-3]
+
       try:
-        text += f"""{line} = ‎{str(s.eval(line))}
-"""
+        s.eval(line)
+      except AssignEx: # if the line is a variable assignment
+        newvarval = line.split("=")[1]
+        for varname, varval in vars.items(): newvarval = newvarval.replace(varname, str(varval))
+        try: self.variables.update({line.split("=")[0].strip(): s.eval(newvarval)})
+        except: pass
+        text += f"{line}\n"
+      except: # if it's not a veriable assignment but it contains variables
+        try:
+          exline = "**".join(part.replace("**", "^") for part in line.split("^"))
+          vars = {}
+          for j in sorted(self.variables, key=len, reverse=True): vars[j] = self.variables[j]
+          for varname, varval in vars.items(): exline = exline.replace(varname, str(varval))
+          text += f"{line} = ‎{str(s.eval(exline))}\n"
+          lineend = len(line) + 1
+        except: text += f"{line}\n" # if it's not an equasion
+      else: # if the equasion doesn't contain any variables
+        text += f"{line} = ‎{str(s.eval(line))}\n"
         lineend = len(line) + 1
-      except: text += f"""{line}
-"""
       self.lineEnds.update({i+1: lineend})
+
     curpos = self.text.index("insert")
     self.text.delete(1.0, "end")
     self.text.insert("end", text)

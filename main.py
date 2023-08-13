@@ -1,7 +1,9 @@
-import tkinter as tk, pyglet, os, threading, math, decimal
+import tkinter as tk, pyglet, threading, math, decimal
 from simpleeval import SimpleEval, MAX_STRING_LENGTH, IterableTooLong
 from time import sleep
 from tkinter import ttk
+
+pyglet.font.add_file("LigalexMono.ttf")
 
 class AssignEx(Exception): pass
 
@@ -25,9 +27,6 @@ s.functions = {"sqrt": math.sqrt, "cbrt": math.cbrt, "round": round,
               "floor": math.floor, "ceil": math.ceil, "abs": abs,
               "fact": math.factorial, "log": math.log, "sin": math.sin,
               "cos": math.cos, "tan": math.tan}
-
-def swap_words(s, x, y):
-    return y.join(part.replace(y, x) for part in s.split(x))
 
 def checkEdited(app):
   while not app.text.edit_modified():
@@ -54,28 +53,25 @@ class App:
     self.root["bg"] = "#1e1e1e"
     self.root.minsize(250, 250)
 
-    pyglet.font.add_file(os.path.join("fonts", "LigalexMono.ttf"))
+    self.fs = ttk.Style()
+    self.fs.configure(".", font=("Ligalex Mono", 12), background="#1e1e1e")
 
     self.mainframe = tk.Frame(self.root, bg="#1e1e1e")
     self.mainframe.place(x=250, y=187.5, anchor="center")
 
-    self.text = tk.Text(self.mainframe, width=math.floor((math.floor(500/11.002)-2)), height=math.floor(375/24.002)-2, font=("Ligalex Mono", 14), bg="#1e1e1e", fg="white", borderwidth=0, wrap="none")
+    self.text = tk.Text(self.mainframe, width=math.floor((math.floor(500/11.002)-2)), height=math.floor(375/24.002)-1, font=("Ligalex Mono", 14), bg="#1e1e1e", fg="white", borderwidth=0, wrap="none")
     self.text.grid(row=0, column=0)
+    self.text.tag_config("res", foreground="#48c2ad", font=("Ligalex Mono", 14, "italic"))
 
     self.scrollv = ttk.Scrollbar(self.mainframe, command=self.text.yview)
     self.scrollv.grid(row=0, column=2, sticky="NSEW")
-
     self.text["yscrollcommand"] = self.scrollv.set
 
     self.scrollh = ttk.Scrollbar(self.mainframe, orient="horizontal", command=self.text.xview)
     self.scrollh.grid(row=1, column=0, sticky="NESW")
     self.text["xscrollcommand"] = self.scrollh.set
 
-    self.settingsb = ttk.Button(self.mainframe, text=u"\uE713 Settings")
-    self.settingsb.grid(row=2, column=0, columnspan=3)
-
-    self.lineEnds = {}
-    self.variables = {"pi": math.pi, "e": math.e, "phi": (1 + 5 ** 0.5) / 2}
+    self.lineEnds, self.variables = {}, {"pi": math.pi, "e": math.e, "phi": (1 + 5 ** 0.5) / 2}
 
     self.thread = threading.Thread(target=checkEdited, args=(self,), daemon=True)
     self.thread.start()
@@ -97,15 +93,15 @@ class App:
       try:
         s.eval(line)
       except AssignEx: # if the line is a variable assignment
-        newvarval = line.split("=")[1]
+        newvarval, vars = line.split("=")[1], {}
+        for j in sorted(self.variables, key=len, reverse=True): vars[j] = self.variables[j]
         for varname, varval in vars.items(): newvarval = newvarval.replace(varname, str(varval))
         try: self.variables.update({line.split("=")[0].strip(): s.eval(newvarval)})
         except: pass
         text += f"{line}\n"
       except: # if it's not a veriable assignment but it contains variables
         try:
-          exline = "**".join(part.replace("**", "^") for part in line.split("^"))
-          vars = {}
+          exline, vars = "**".join(part.replace("**", "^") for part in line.split("^")), {}
           for j in sorted(self.variables, key=len, reverse=True): vars[j] = self.variables[j]
           for varname, varval in vars.items(): exline = exline.replace(varname, str(varval))
           text += f"{line} = ‎{str(s.eval(exline))}\n"
@@ -119,10 +115,12 @@ class App:
     curpos = self.text.index("insert")
     self.text.delete(1.0, "end")
     self.text.insert("end", text)
+    for i, line in enumerate(self.text.get(1.0, "end-1c").splitlines()):
+      if "‎" in line: self.text.tag_add("res", f"{i+1}.{line.index('‎')-2}", f"{i+1}.{len(line)}")
     self.text.mark_set("insert", curpos)
 
   def resize(self, event):
-    self.text.config(width=math.floor((math.floor(int(self.root.geometry().split("x")[0])/11.002)-2)), height=math.floor(int(self.root.geometry().split("x")[1].split("+")[0])/24.002)-2)
+    self.text.config(width=math.floor((math.floor(int(self.root.geometry().split("x")[0])/11.002)-2)), height=math.floor(int(self.root.geometry().split("x")[1].split("+")[0])/24.002)-1)
     self.mainframe.place(x=int(self.root.geometry().split("x")[0]) / 2, y=int(self.root.geometry().split("x")[1].split("+")[0]) / 2, anchor="center")
 
 if __name__ == "__main__":

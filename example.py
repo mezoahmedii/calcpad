@@ -1,20 +1,23 @@
-def swap_substrings(string, substring1, substring2):
-    # Find the indices of the substrings
-    index1 = string.find(substring1)
-    index2 = string.find(substring2)
+import tkinter as tk
 
-    # Check if the substrings are found in the string
-    if index1 == -1 or index2 == -1:
-        return string  # Substrings not found, return the original string
+def on_selection_changed(selection):
+    # This function will be called when the selection in the dropdown menu is changed
+    # You can add your desired code here to handle the selection change
+    print(f"Selected: {selection}")
 
-    # Swap the substrings
-    swapped_string = string[:index1] + substring2 + string[index1 + len(substring1):index2] + substring1 + string[index2 + len(substring2):]
+# Create the main window
+main_window = tk.Tk()
 
-    return swapped_string
+# Create a list of options for the dropdown menu
+options = ["Option 1", "Option 2", "Option 3"]
 
-# Example usage
-original_string = "Hello world, how are you? The are is messed up, but world are still perfect!"
-substring1 = "world"
-substring2 = "are"
-swapped_string = swap_substrings(original_string, substring1, substring2)
-print(swapped_string)
+# Create a variable to store the selected option
+selected_option = tk.StringVar(main_window)
+selected_option.set(options[0])  # Set the initial selected option
+
+# Create the dropdown menu
+dropdown_menu = tk.OptionMenu(main_window, selected_option, *options, command=on_selection_changed)
+dropdown_menu.pack()
+
+# Start the Tkinter event loop
+main_window.mainloop()

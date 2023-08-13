@@ -50,6 +50,7 @@ class App:
     self.root = tk.Tk()
     self.root.geometry("500x375+250+150")
     self.root.title("Calcpad")
+    self.root.iconbitmap("icon.ico")
     self.root["bg"] = "#1e1e1e"
     self.root.minsize(250, 250)
 

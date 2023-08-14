@@ -15,13 +15,16 @@ class DecimalEval(SimpleEval):
         "Literal in statement is too long!"
         " ({0}, when {1} is max)".format(len(node.value), MAX_STRING_LENGTH)
       )
-    return decimal.Decimal(str(node.n))
+    
+    if type(node.n) == float: return decimal.Decimal(str(node.n))
+    else: return node.n
 
   @staticmethod
   def _eval_assign(node):
     raise AssignEx()
 
 s = DecimalEval()
+for o in [25, 24, 23, 22, 15, 14, 13, 12, 11, 10, 9, 6, 5]: del s.operators[list(s.operators.keys())[o]]
 
 s.functions = {"sqrt": math.sqrt, "cbrt": math.cbrt, "round": round,
               "floor": math.floor, "ceil": math.ceil, "abs": abs,
@@ -91,8 +94,9 @@ class App:
       # remove invisible character
       if "‎" in line: line = line[:line.index("‎")-3]
 
-      try:
-        s.eval(line)
+      exline = "**".join(part.replace("**", "^") for part in line.split("^"))
+
+      try: s.eval(exline)
       except AssignEx: # if the line is a variable assignment
         newvarval, vars = line.split("=")[1], {}
         for j in sorted(self.variables, key=len, reverse=True): vars[j] = self.variables[j]
@@ -100,16 +104,18 @@ class App:
         try: self.variables.update({line.split("=")[0].strip(): s.eval(newvarval)})
         except: pass
         text += f"{line}\n"
-      except: # if it's not a veriable assignment but it contains variables
+      except: # if it's not a variable assignment but it contains variables
         try:
-          exline, vars = "**".join(part.replace("**", "^") for part in line.split("^")), {}
+          vars = {}
           for j in sorted(self.variables, key=len, reverse=True): vars[j] = self.variables[j]
           for varname, varval in vars.items(): exline = exline.replace(varname, str(varval))
-          text += f"{line} = ‎{str(s.eval(exline))}\n"
+          if type(r := s.eval(exline)) in [decimal.Decimal, int, float]: text += f"{line} = ‎{str(r)}\n"
+          else: text += f"{line}\n"
           lineend = len(line) + 1
         except: text += f"{line}\n" # if it's not an equasion
       else: # if the equasion doesn't contain any variables
-        text += f"{line} = ‎{str(s.eval(line))}\n"
+        if type(r := s.eval(exline)) in [decimal.Decimal, int, float]: text += f"{line} = ‎{str(r)}\n"
+        else: text += f"{line}\n"
         lineend = len(line) + 1
       self.lineEnds.update({i+1: lineend})
 

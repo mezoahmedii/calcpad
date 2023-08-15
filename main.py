@@ -90,7 +90,7 @@ Default Variables:
     self.helpB = ttk.Button(self.buttonBar, text="❔Help", command=lambda: msg.showinfo("Calcpad Help", self.helpInfo))
     self.helpB.pack(side="left", padx=5)
 
-    sv_ttk.set_theme("dark", self.root)
+    sv_ttk.use_dark_theme(self.root)
 
     self.lineEnds, self.variables = {}, {"pi": math.pi, "e": math.e, "phi": (1 + 5 ** 0.5) / 2}
 
